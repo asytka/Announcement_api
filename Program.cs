@@ -10,7 +10,17 @@ namespace Announcement_api
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddDbContext<Announcement_apiContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("Announcement_apiContext"),
+
             sqlOptions => sqlOptions.EnableRetryOnFailure()));
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy.WithOrigins("http://localhost:4200")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
 
             // Add services to the container.
 
@@ -27,6 +37,7 @@ namespace Announcement_api
                         builder.Services.AddEndpointsApiExplorer();
 
             var app = builder.Build();
+            app.UseCors();
 
             if (app.Environment.IsDevelopment())
             {

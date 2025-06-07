@@ -21,17 +21,25 @@ namespace Announcement_api.Controllers
             _context = context;
         }
 
-        // GET: api/Announcements
+        
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Announcement>>> GetAnnouncement()
         {
             return await _context.Announcement.ToListAsync();
         }
 
-        // GET: api/Announcements/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Announcement>> GetAnnouncement(int id)
+        public async Task<ActionResult<Announcement>> GetAnnouncement([FromQuery] bool sims, int id)
         {
+
+            bool AreSimilar(string text1, string text2)
+            {
+                var words1 = text1.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries).Distinct();
+                var words2 = text2.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries).Distinct();
+
+                return words1.Intersect(words2).Any();
+            }
+
             var announcement = await _context.Announcement.FindAsync(id);
 
             if (announcement == null)
@@ -39,11 +47,20 @@ namespace Announcement_api.Controllers
                 return NotFound();
             }
 
-            return announcement;
+            if (!sims) { return announcement; }
+
+            var announcements = await _context.Announcement.ToListAsync();
+
+            var similar = announcements
+                .Where(a => AreSimilar($"{announcement.Title} {announcement.Description}", $"{a.Title} {a.Description}"))
+                .OrderByDescending(a => a.Date)
+                .Take(3)
+                .ToList();
+
+            return Ok(similar);
+            
         }
 
-        // PUT: api/Announcements/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAnnouncement(int id, Announcement announcement)
         {
@@ -73,8 +90,6 @@ namespace Announcement_api.Controllers
             return NoContent();
         }
 
-        // POST: api/Announcements
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Announcement>> PostAnnouncement(Announcement announcement)
         {
@@ -84,7 +99,6 @@ namespace Announcement_api.Controllers
             return CreatedAtAction("GetAnnouncement", new { id = announcement.id }, announcement);
         }
 
-        // DELETE: api/Announcements/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAnnouncement(int id)
         {
