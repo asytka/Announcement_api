@@ -52,7 +52,8 @@ namespace Announcement_api.Controllers
             var announcements = await _context.Announcement.ToListAsync();
 
             var similar = announcements
-                .Where(a => AreSimilar($"{announcement.Title} {announcement.Description}", $"{a.Title} {a.Description}"))
+                 .Where(a => a.id != announcement.id &&
+                        AreSimilar($"{announcement.Title} {announcement.Description}", $"{a.Title} {a.Description}"))
                 .OrderByDescending(a => a.Date)
                 .Take(3)
                 .ToList();
@@ -93,6 +94,8 @@ namespace Announcement_api.Controllers
         [HttpPost]
         public async Task<ActionResult<Announcement>> PostAnnouncement(Announcement announcement)
         {
+            announcement.Title = TrimToLength(announcement.Title, 50);
+            announcement.Description = TrimToLength(announcement.Description, 9999);
             _context.Announcement.Add(announcement);
             await _context.SaveChangesAsync();
 
@@ -114,6 +117,14 @@ namespace Announcement_api.Controllers
             return NoContent();
         }
 
+        private string TrimToLength(string? input, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
+
+            input = input.Trim();
+            return input.Length > maxLength ? input.Substring(0, maxLength) : input;
+        }
         private bool AnnouncementExists(int id)
         {
             return _context.Announcement.Any(e => e.id == id);
